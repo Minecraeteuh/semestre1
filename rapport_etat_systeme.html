@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapport d'État Système Linux</title>
+    <link rel="stylesheet" href="gamberge.css">
+</head>
+<body>
+
+    <header>
+        <h1>Rapport d'État Système Linux</h1>
+        <p>Généré le : <time id="generation_date_temps">2025-11-19 09:29:33</time></p>
+    </header>
+
+<main>
+    <section aria-labelledby="titre_general">
+            <h2 id="titre_general">Informations Générales du Système</h2>
+            <div class="grille-conteneur">
+                <div class="carte-info">
+                    <strong>Nom d'hôte</strong>
+                    <p id="nom_hote">ethan-Nitro-AN515-54</p>
+                </div>
+                <div class="carte-info">
+                    <strong>Noyau Linux</strong>
+                    <p id="version_noyau">Linux 6.14.0-35-generic</p>
+                </div>
+                <div class="carte-info">
+                    <strong>Durée de fonctionnement (Uptime)</strong>
+                    <p id="duree_fonctionnement">23h 27min 49sec</p>
+                </div>
+            </div>
+        </section> 
+        <section aria-labelledby="titre_memoire">
+            <h2 id="titre_memoire">État de la Mémoire Vive (RAM) et Swap</h2>
+            
+            <div class="conteneur-barre-progression">
+                <p><strong>Mémoire Utilisée (RAM)</strong> : <span id="memoire_utilisee_pourcentage">66.1 %</span> / Total : <span id="memoire_totale_go">15.46 GO</span></p>
+                <div class="barre-progression">
+                    <div id="remplissage_memoire" class="remplissage-progression remplissage-memoire" style="width: 66.1%;">66.1%</div>
+                </div>
+            </div>
+            <div class="conteneur-barre-progression">
+                <p><strong>Mémoire Cache & Buffers</strong> : <span id="memoire_cache_go">4.94 GO</span></p>
+            </div>
+            
+            <div class="conteneur-barre-progression">
+                <p><strong>Swap Utilisé</strong> : <span id="swap_utilise_pourcentage">0.0 %</span> / Total : <span id="swap_total_go">4.0 GO</span></p>
+                <div class="barre-progression">
+                    <div id="remplissage_swap" class="remplissage-progression remplissage-swap" style="width: 0.0%;">0.0%</div>
+                </div>
+            </div>
+            
+        </section>
+        <section aria-labelledby="titre_materiel">
+            <h2 id="titre_materiel">Matériel, Températures et Alimentation</h2>
+            <div class="grille-conteneur">
+                <div class="carte-info">
+                    <strong>Températures des Composants</strong>
+                    <ul id="liste_temperatures">
+                        <li>X86_pkg_temp: <span class="valeur_temp">48.0°C</span></li><li>Pch_cannonlake: <span class="valeur_temp">56.0°C</span></li><li>Iwlwifi_1: <span class="valeur_temp">43.0°C</span></li><li>GPU (NVIDIA): <span class="valeur_temp">44°C</span></li>
+                    </ul>
+                </div>
+                <div class="carte-info">
+                    <strong>État de l'Alimentation</strong>
+                    <p>Statut (Batterie/Secteur): <strong id="statut_alimentation">Discharging (BAT1)</strong></p>
+                    <p>Niveau de charge: <strong id="niveau_batterie">74%</strong></p>
+                </div>
+            </div>
+        </section>
+        <section aria-labelledby="titre_processus" class="pleine-largeur">
+            <h2 id="titre_processus">Top Processus Actifs (par Usage Mémoire)</h2>
+            <div class="tableau-responsif">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>PID</th>
+                            <th>Utilisateur</th>
+                            <th>% CPU</th>
+                            <th>% MEM</th>
+                            <th>Nom du Processus</th>
+                        </tr>
+                    </thead>
+                    <tbody id="corps_tableau_processus">
+                        
+            <tr>
+                <td>5602</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>10.7%</td>
+                <td>pycharm</td>
+            </tr>
+            
+            <tr>
+                <td>3253</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>6.0%</td>
+                <td>firefox</td>
+            </tr>
+            
+            <tr>
+                <td>22494</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>4.8%</td>
+                <td>Isolated Web Co</td>
+            </tr>
+            
+            <tr>
+                <td>22804</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>3.6%</td>
+                <td>Isolated Web Co</td>
+            </tr>
+            
+            <tr>
+                <td>36306</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>3.6%</td>
+                <td>code</td>
+            </tr>
+            
+            <tr>
+                <td>4497</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>3.5%</td>
+                <td>Discord</td>
+            </tr>
+            
+            <tr>
+                <td>18019</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>3.0%</td>
+                <td>Isolated Web Co</td>
+            </tr>
+            
+            <tr>
+                <td>36821</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>3.0%</td>
+                <td>code</td>
+            </tr>
+            
+            <tr>
+                <td>3922</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>2.9%</td>
+                <td>Isolated Web Co</td>
+            </tr>
+            
+            <tr>
+                <td>19102</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>2.8%</td>
+                <td>Isolated Web Co</td>
+            </tr>
+            
+            <tr>
+                <td>2424</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>2.2%</td>
+                <td>gnome-shell</td>
+            </tr>
+            
+            <tr>
+                <td>5860</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>2.1%</td>
+                <td>Isolated Web Co</td>
+            </tr>
+            
+            <tr>
+                <td>19388</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>2.1%</td>
+                <td>Isolated Web Co</td>
+            </tr>
+            
+            <tr>
+                <td>20613</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>1.9%</td>
+                <td>Isolated Web Co</td>
+            </tr>
+            
+            <tr>
+                <td>19925</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>1.8%</td>
+                <td>Isolated Web Co</td>
+            </tr>
+            
+            <tr>
+                <td>21427</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>1.7%</td>
+                <td>Isolated Web Co</td>
+            </tr>
+            
+            <tr>
+                <td>36491</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>1.6%</td>
+                <td>code</td>
+            </tr>
+            
+            <tr>
+                <td>23074</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>1.5%</td>
+                <td>Isolated Web Co</td>
+            </tr>
+            
+            <tr>
+                <td>18805</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>1.4%</td>
+                <td>Isolated Web Co</td>
+            </tr>
+            
+            <tr>
+                <td>3865</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>1.3%</td>
+                <td>Discord</td>
+            </tr>
+            
+            <tr>
+                <td>19655</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>1.3%</td>
+                <td>Isolated Web Co</td>
+            </tr>
+            
+            <tr>
+                <td>36222</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>1.3%</td>
+                <td>code</td>
+            </tr>
+            
+            <tr>
+                <td>19809</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>1.2%</td>
+                <td>Isolated Web Co</td>
+            </tr>
+            
+            <tr>
+                <td>20086</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>1.2%</td>
+                <td>Isolated Web Co</td>
+            </tr>
+            
+            <tr>
+                <td>2128</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>1.2%</td>
+                <td>Xorg</td>
+            </tr>
+            
+            <tr>
+                <td>22403</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>1.2%</td>
+                <td>Isolated Web Co</td>
+            </tr>
+            
+            <tr>
+                <td>4420</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>1.1%</td>
+                <td>Discord</td>
+            </tr>
+            
+            <tr>
+                <td>2951</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>1.1%</td>
+                <td>xdg-desktop-por</td>
+            </tr>
+            
+            <tr>
+                <td>22582</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>1.1%</td>
+                <td>Isolated Web Co</td>
+            </tr>
+            
+            <tr>
+                <td>36357</td>
+                <td>ethan</td>
+                <td>N/D</td>
+                <td>1.1%</td>
+                <td>code</td>
+            </tr>
+            
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section aria-labelledby="titre_disques" class="pleine-largeur">
+            <h2 id="titre_disques">État des Disques et Systèmes de Fichiers</h2>
+            <div class="tableau-responsif">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Point de montage</th>
+                            <th>Taille Totale</th>
+                            <th>Utilisé</th>
+                            <th>Disponible</th>
+                            <th>% Utilisé</th>
+                        </tr>
+                    </thead>
+                    <tbody id="corps_tableau_disques">
+                        <tr><td colspan="5" class="message-erreur" style="text-align:center;">Commande 'df' non disponible ou erreur d'exécution.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section aria-labelledby="titre_reseau" class="pleine-largeur">
+            <h2 id="titre_reseau">Réseau et Services Web (80/443)</h2>
+            <div class="grille-conteneur">
+                <div class="carte-info">
+                    <strong>Statut Réseau</strong>
+                    <p id="statut_reseau">Réseau actif</p>
+                    <strong>Interfaces Actives</strong>
+                    <ul id="liste_interfaces">
+                        <li>lo (127.0.0.1/8)</li><li>wlp8s0 (192.168.1.149/17)</li>
+                    </ul>
+                </div>
+                <div class="carte-info">
+                    <strong>Services Web Locaux (ethan-Nitro-AN515-54)</strong>
+                    <ul id="liste_services_web">
+                        <li>Port 80 (HTTP): <span id="statut_port_80">Fermé/N/D</span></li>
+                        <li>Port 443 (HTTPS): <span id="statut_port_443">Fermé/N/D</span></li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer>
+        <p>© Rapport d'état généré automatiquement - Projet Système</p>
+    </footer>
+    
+</body>
+</html>

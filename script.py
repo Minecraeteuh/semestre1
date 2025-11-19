@@ -14,11 +14,46 @@ uptime=float(open("/proc/uptime").read().split()[0])
 uptime_propre=(f"{int(uptime//3600)}h {int((uptime%3600)//60)}min {uptime%60:.0f}sec")
 
 
-def gpu_temperature():
-    output = subprocess.check_output(["nvidia-smi", "--query-gpu=temperature.gpu", "--format=csv,noheader,nounits"])
-    return int(output.strip())
-gpu_temp = str(gpu_temperature()) + "°C"
-temp_composants=[open("/sys/class/thermal/thermal_zone2/temp").read().strip(),open("/sys/class/thermal/thermal_zone2/temp").read().strip()]
+def get_temperatures():
+
+    temperatures = {}
+    zone_paths = glob.glob("/sys/class/thermal/thermal_zone*")
+
+    if not zone_paths:
+        return {"erreur": "Aucun capteur de température trouvé dans /sys/class/thermal/."}
+    for path in zone_paths:
+        try:
+            with open(path + "/type", 'r') as f_type:
+                type_name = f_type.read().strip()
+            with open(path + "/temp", 'r') as f_temp:
+                temp_value_str = f_temp.read().strip()
+            temp_celsius = int(temp_value_str) / 1000.0
+            temperatures[type_name] = f"{temp_celsius:.1f}°C"
+        except (FileNotFoundError, PermissionError, ValueError, OSError) as e:
+            try:
+                type_name = path.split('/')[-1] + "_type_inconnu"
+            except Exception:
+                type_name = path
+
+            temperatures[type_name] = f"Erreur de lecture : {e}"
+
+    return temperatures
+temp_composants = get_temperatures()
+
+def get_gpu_temperature():
+    try:
+        result = subprocess.run(
+            ["nvidia-smi", "--query-gpu=temperature.gpu", "--format=csv,noheader,nounits"],
+            capture_output=True, text=True, check=True, encoding='utf-8'
+        )
+        return f"{int(result.stdout.strip())}°C"
+    except (FileNotFoundError, subprocess.CalledProcessError):
+        return None
+    except Exception as e:
+        return f"Erreur GPU: {e}"
+gpu_temp = get_gpu_temperature()
+if gpu_temp:
+    temp_composants["GPU_NVIDIA"] = gpu_temp
 #CPU=0 chipset=1 GPU=gpu_temperature()
 
 
@@ -49,8 +84,34 @@ for path in glob.glob("/proc/[0-9]*/status"):
         uid = [l.split(":")[1].split()[0] for l in lignes if l.startswith("Uid:")][0]
         mem = [l.split(":")[1].split()[0] for l in lignes if l.startswith("VmRSS:")]
         mem = int(mem[0]) if mem else 0
-        processus.append((pid, uid, mem, nom))
-    except Exception:
-        pass
 
-print(processus)
+        stat_path = f"/proc/{pid}/stat"
+        stat_values = open(stat_path).read().split()
+        utime = int(stat_values[13])
+        stime = int(stat_values[14])
+        cpu_time = round((utime + stime) / 2)
+
+        processus.append((nom, pid, uid, mem))
+    except Exception:
+            print("Erreur infos processus")
+
+
+
+
+def get_wifi_info():
+    try:
+        result=subprocess.run(['iwgetid','-r'],capture_output=True,text=True,check=True,encoding='utf-8')
+        ssid=result.stdout.strip()
+
+        if ssid:
+            return "Le nom du wifi est "+ ssid
+        else:
+            return "Non connecté a un réseau wifi"
+    except:
+        return "Erreur : vous n'êtes probablement pas connecté sur un réseau wifi   ."
+
+
+dl_info=[open("/sys/class/net/wlp8s0/statistics/rx_bytes").read(),open("/sys/class/net/wlp8s0/statistics/tx_bytes").read()]
+dl1=dl_info[0].strip(),dl_info[1].strip()
+telechargement=str(int(int(dl1[0])/1000024)) + ("Mo")
+envoi=int(dl1[1])/1024

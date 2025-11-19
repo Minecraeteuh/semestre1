@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapport d'État Système Linux</title>
+    <link rel="stylesheet" href="gamberge.css">
+</head>
+<body>
+
+    <header>
+        <h1>Rapport d'État Système Linux</h1>
+        <p>Généré le : <time id="generation_date_temps">{{DATE_TEMPS}}</time></p>
+    </header>
+
+<main>
+    <section aria-labelledby="titre_general">
+            <h2 id="titre_general">Informations Générales du Système</h2>
+            <div class="grille-conteneur">
+                <div class="carte-info">
+                    <strong>Nom d'hôte</strong>
+                    <p id="nom_hote">{{HOSTNAME}}</p>
+                </div>
+                <div class="carte-info">
+                    <strong>Noyau Linux</strong>
+                    <p id="version_noyau">{{KERNEL_VERSION}}</p>
+                </div>
+                <div class="carte-info">
+                    <strong>Durée de fonctionnement (Uptime)</strong>
+                    <p id="duree_fonctionnement">{{UPTIME}}</p>
+                </div>
+            </div>
+        </section> 
+        <section aria-labelledby="titre_memoire">
+            <h2 id="titre_memoire">État de la Mémoire Vive (RAM) et Swap</h2>
+            
+            <div class="conteneur-barre-progression">
+                <p><strong>Mémoire Utilisée (RAM)</strong> : <span id="memoire_utilisee_pourcentage">{{MEMOIRE_USE_PCT}} %</span> / Total : <span id="memoire_totale_go">{{MEMOIRE_TOTALE_GO}}</span></p>
+                <div class="barre-progression">
+                    <div id="remplissage_memoire" class="remplissage-progression remplissage-memoire" style="width: {{MEMOIRE_USE_PCT_VAL}}%;">{{MEMOIRE_USE_PCT}}%</div>
+                </div>
+            </div>
+            <div class="conteneur-barre-progression">
+                <p><strong>Mémoire Cache & Buffers</strong> : <span id="memoire_cache_go">{{MEMOIRE_CACHE_GO}}</span></p>
+            </div>
+            
+            <div class="conteneur-barre-progression">
+                <p><strong>Swap Utilisé</strong> : <span id="swap_utilise_pourcentage">{{SWAP_USE_PCT}} %</span> / Total : <span id="swap_total_go">{{SWAP_TOTALE_GO}}</span></p>
+                <div class="barre-progression">
+                    <div id="remplissage_swap" class="remplissage-progression remplissage-swap" style="width: {{SWAP_USE_PCT_VAL}}%;">{{SWAP_USE_PCT}}%</div>
+                </div>
+            </div>
+            
+        </section>
+        <section aria-labelledby="titre_materiel">
+            <h2 id="titre_materiel">Matériel, Températures et Alimentation</h2>
+            <div class="grille-conteneur">
+                <div class="carte-info">
+                    <strong>Températures des Composants</strong>
+                    <ul id="liste_temperatures">
+                        {{LISTE_TEMPERATURES}}
+                    </ul>
+                </div>
+                <div class="carte-info">
+                    <strong>État de l'Alimentation</strong>
+                    <p>Statut (Batterie/Secteur): <strong id="statut_alimentation">{{STATUT_ALIMENTATION}}</strong></p>
+                    <p>Niveau de charge: <strong id="niveau_batterie">{{NIVEAU_BATTERIE}}</strong></p>
+                </div>
+            </div>
+        </section>
+        <section aria-labelledby="titre_processus" class="pleine-largeur">
+            <h2 id="titre_processus">Top Processus Actifs (par Usage Mémoire)</h2>
+            <div class="tableau-responsif">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>PID</th>
+                            <th>Utilisateur</th>
+                            <th>% CPU</th>
+                            <th>% MEM</th>
+                            <th>Nom du Processus</th>
+                        </tr>
+                    </thead>
+                    <tbody id="corps_tableau_processus">
+                        {{CORPS_TABLEAU_PROCESSUS}}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section aria-labelledby="titre_disques" class="pleine-largeur">
+            <h2 id="titre_disques">État des Disques et Systèmes de Fichiers</h2>
+            <div class="tableau-responsif">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Point de montage</th>
+                            <th>Taille Totale</th>
+                            <th>Utilisé</th>
+                            <th>Disponible</th>
+                            <th>% Utilisé</th>
+                        </tr>
+                    </thead>
+                    <tbody id="corps_tableau_disques">
+                        {{CORPS_TABLEAU_DISQUES}}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section aria-labelledby="titre_reseau" class="pleine-largeur">
+            <h2 id="titre_reseau">Réseau et Services Web (80/443)</h2>
+            <div class="grille-conteneur">
+                <div class="carte-info">
+                    <strong>Statut Réseau</strong>
+                    <p id="statut_reseau">{{STATUT_RESEAU}}</p>
+                    <strong>Interfaces Actives</strong>
+                    <ul id="liste_interfaces">
+                        {{LISTE_INTERFACES}}
+                    </ul>
+                </div>
+                <div class="carte-info">
+                    <strong>Services Web Locaux ({{HOSTNAME}})</strong>
+                    <ul id="liste_services_web">
+                        <li>Port 80 (HTTP): <span id="statut_port_80">{{STATUT_PORT_80}}</span></li>
+                        <li>Port 443 (HTTPS): <span id="statut_port_443">{{STATUT_PORT_443}}</span></li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer>
+        <p>© Rapport d'état généré automatiquement - Projet Système</p>
+    </footer>
+    
+</body>
+</html>
