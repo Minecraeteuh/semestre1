@@ -6,12 +6,8 @@ import argparse
 from pathlib import Path
 import tkinter as tk
 from tkinter import ttk, messagebox
-import http.client 
-
-# --- Fonctions Utilitaires ---
 
 def _safe_read(path, default_value="N/D", conversion=str):
-    """Lit un fichier système en gérant les exceptions."""
     try:
         with open(path, 'r') as f:
             return conversion(f.read().strip())
@@ -19,7 +15,6 @@ def _safe_read(path, default_value="N/D", conversion=str):
         return default_value
 
 def _safe_subprocess(cmd, default_value="N/D", timeout=5):
-    """Exécute une commande externe en gérant les erreurs d'exécution."""
     try:
         result = subprocess.check_output(
             cmd,
@@ -31,10 +26,7 @@ def _safe_subprocess(cmd, default_value="N/D", timeout=5):
     except Exception:
         return default_value
 
-# --- Classe de Collecte de Données ---
-
 class SystemCollector:
-
     def get_general_info(self):
         report_time = time.strftime("%Y-%m-%d %H:%M:%S")
         uptime_sec = _safe_read("/proc/uptime", default_value=0.0, conversion=lambda x: float(x.split()[0]))
@@ -228,8 +220,6 @@ class SystemCollector:
             results[port] = status
         return results
 
-# --- Génération du Rapport HTML ---
-
 def generate_html_report(destination_file):
     collector = SystemCollector()
     script_dir = Path(sys.argv[0]).parent 
@@ -305,7 +295,6 @@ def generate_html_report(destination_file):
         process_rows = '<tr><td colspan="5" class="message-erreur" style="text-align:center;">Aucun processus actif ou erreur de lecture.</td></tr>'
     html_content = html_content.replace('{{CORPS_TABLEAU_PROCESSUS}}', process_rows)
 
-    # Tableau des Disques
     disk_rows = ""
     if 'Error' in data['disks'][0] if data['disks'] else False:
         disk_rows = f'<tr><td colspan="5" class="message-erreur" style="text-align:center;">{data["disks"][0]["Error"]}</td></tr>'
@@ -326,17 +315,14 @@ def generate_html_report(destination_file):
     else:
         disk_rows = '<tr><td colspan="5" class="message-erreur" style="text-align:center;">Aucun système de fichiers monté ou lisible (df).</td></tr>'
     html_content = html_content.replace('{{CORPS_TABLEAU_DISQUES}}', disk_rows)
-    
-    # Réseau et Services Web
+
     network_list = "".join([f'<li>{i}</li>' for i in data['network']['interfaces']])
     if not network_list:
         network_list = f'<li class="message-erreur">{data["network"]["status"]}</li>'
-
     html_content = html_content.replace('{{STATUT_RESEAU}}', data['network']['status'])
     html_content = html_content.replace('{{LISTE_INTERFACES}}', network_list)
     html_content = html_content.replace('{{STATUT_PORT_80}}', data['web_services'][80])
     html_content = html_content.replace('{{STATUT_PORT_443}}', data['web_services'][443])
-
     try:
         with open(destination_file, "w", encoding="utf-8") as f:
             f.write(html_content)
@@ -344,9 +330,6 @@ def generate_html_report(destination_file):
     except IOError as e:
         print(f"Erreur d'écriture: Impossible d'écrire le fichier de rapport à {destination_file}.")
         sys.exit(1)
-
-
-# --- Interface Graphique (Tkinter) ---
 
 def interface_graphique():
     
@@ -401,8 +384,8 @@ def interface_graphique():
 
             processes = collector.get_process_list()
             zone_processus.delete("1.0", tk.END)
-            total_ram_ko = mem['total_gb'] * 1048576 
-            
+            total_ram_ko = mem['total_gb'] * 1048576
+
             zone_processus.insert(tk.END, f"{'PID':<6} | {'USER':<10} | {'CPU':<5} | {'MEM':<5} | {'NOM'}\n")
             zone_processus.insert(tk.END, "-" * 75 + "\n")
 
@@ -419,20 +402,18 @@ def interface_graphique():
     mise_a_jour()
     fenetre.mainloop()
 
-
-# --- Fonction Principale ---
-
 def main():
     parser = argparse.ArgumentParser(description="Générateur de rapport d'état système Linux.")
     parser.add_argument("--gui", action="store_true", help="Lance le mode d'interface graphique en temps réel.")
     parser.add_argument("--output", default="rapport_etat_systeme.html", help="Nom du fichier de rapport HTML de sortie.")
-    
     args = parser.parse_args()
-
     if args.gui:
         interface_graphique()
     else:
         generate_html_report(args.output)
+
+
+
 
 
 if __name__ == "__main__":
