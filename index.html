@@ -18,7 +18,7 @@
             <h2 id="titre_general">Informations Générales du Système</h2>
             <div class="grille-conteneur">
                 <div class="carte-info">
-                    <strong>Nom d'hôte</strong>
+                    <strong>Nom de la machine</strong>
                     <p id="nom_hote">{{HOSTNAME}}</p>
                 </div>
                 <div class="carte-info">
@@ -68,26 +68,6 @@
                 </div>
             </div>
         </section>
-        <section aria-labelledby="titre_processus" class="pleine-largeur">
-            <h2 id="titre_processus">Top Processus Actifs (par Usage Mémoire)</h2>
-            <div class="tableau-responsif">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>PID</th>
-                            <th>Utilisateur</th>
-                            <th>% CPU</th>
-                            <th>% MEM</th>
-                            <th>Nom du Processus</th>
-                        </tr>
-                    </thead>
-                    <tbody id="corps_tableau_processus">
-                        {{CORPS_TABLEAU_PROCESSUS}}
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
         <section aria-labelledby="titre_disques" class="pleine-largeur">
             <h2 id="titre_disques">État des Disques et Systèmes de Fichiers</h2>
             <div class="tableau-responsif">
@@ -126,6 +106,25 @@
                         <li>Port 443 (HTTPS): <span id="statut_port_443">{{STATUT_PORT_443}}</span></li>
                     </ul>
                 </div>
+            </div>
+        </section>
+        <section aria-labelledby="titre_processus" class="pleine-largeur">
+            <h2 id="titre_processus">Top Processus Actifs (par Usage Mémoire)</h2>
+            <div class="tableau-responsif">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>PID</th>
+                            <th>Utilisateur</th>
+                            <th>% CPU</th>
+                            <th>% MEM</th>
+                            <th>Nom du Processus</th>
+                        </tr>
+                    </thead>
+                    <tbody id="corps_tableau_processus">
+                        {{CORPS_TABLEAU_PROCESSUS}}
+                    </tbody>
+                </table>
             </div>
         </section>
 
