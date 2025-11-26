@@ -1,4 +1,4 @@
-# stat_reporter.py
+# Projet.py
 
 import time, socket, platform, subprocess, glob, re
 import sys
@@ -7,14 +7,20 @@ from pathlib import Path
 import tkinter as tk
 from tkinter import ttk, messagebox
 
+
+# --- Fonctions Utilitaires ---
+
 def _safe_read(path, default_value="N/D", conversion=str):
+    """Lit un fichier système en gérant les exceptions."""
     try:
         with open(path, 'r') as f:
             return conversion(f.read().strip())
     except Exception:
         return default_value
 
+
 def _safe_subprocess(cmd, default_value="N/D", timeout=5):
+    """Exécute une commande externe en gérant les erreurs d'exécution."""
     try:
         result = subprocess.check_output(
             cmd,
@@ -26,7 +32,11 @@ def _safe_subprocess(cmd, default_value="N/D", timeout=5):
     except Exception:
         return default_value
 
+
+# --- Classe de Collecte de Données ---
+
 class SystemCollector:
+
     def get_general_info(self):
         report_time = time.strftime("%Y-%m-%d %H:%M:%S")
         uptime_sec = _safe_read("/proc/uptime", default_value=0.0, conversion=lambda x: float(x.split()[0]))
@@ -61,12 +71,12 @@ class SystemCollector:
 
         used_ram_ko = total_ram_ko - available_ram_ko
         used_percent = round((used_ram_ko / total_ram_ko) * 100, 1) if total_ram_ko > 0 else 0
-        
+
         used_swap_ko = total_swap_ko - free_swap_ko
         swap_percent = round((used_swap_ko / total_swap_ko) * 100, 1) if total_swap_ko > 0 else 0
 
-        ko_to_gb = 1048576 
-            
+        ko_to_gb = 1048576
+
         return {
             "total_gb": round(total_ram_ko / ko_to_gb, 2),
             "used_gb": round(used_ram_ko / ko_to_gb, 2),
@@ -78,25 +88,57 @@ class SystemCollector:
 
     def get_temperatures(self):
         temps = {}
+        gpu_found = False
+
+        # 1. Scan des zones thermiques génériques (CPU, Carte Mère, etc.)
         for path in glob.glob("/sys/class/thermal/thermal_zone*/temp"):
             try:
                 name_path = path.replace('temp', 'type')
                 sensor_name = _safe_read(name_path, default_value=path.split('/')[-2])
                 temp_raw = _safe_read(path, conversion=int)
-                
+
                 if isinstance(temp_raw, int):
                     temps[sensor_name.capitalize()] = f"{temp_raw / 1000:.1f}°C"
             except Exception:
-                continue 
+                continue
 
+                # 2. Essai NVIDIA (Pilote propriétaire)
         gpu_temp_raw = _safe_subprocess(
             ["nvidia-smi", "--query-gpu=temperature.gpu", "--format=csv,noheader,nounits"]
         )
         if gpu_temp_raw.isdigit():
             temps["GPU (NVIDIA)"] = f"{gpu_temp_raw}°C"
-        elif "N/D" not in gpu_temp_raw and gpu_temp_raw != "":
-             temps["GPU (NVIDIA)"] = "Erreur lecture GPU"
-        
+            gpu_found = True
+
+        # 3. Essai AMD / Intel / Nouveau (Via HWMON standard)
+        # Si on n'a pas déjà trouvé une NVIDIA, on cherche ailleurs
+        if not gpu_found:
+            for path in glob.glob("/sys/class/hwmon/hwmon*"):
+                try:
+                    # On lit le nom du périphérique (ex: amdgpu, coretemp, radeon)
+                    name = _safe_read(f"{path}/name", default_value="").strip()
+
+                    # Si le nom indique un GPU
+                    if name in ["amdgpu", "radeon", "nouveau"]:
+                        # La température est souvent dans temp1_input (en millidegrés)
+                        temp_path = f"{path}/temp1_input"
+                        temp_raw = _safe_read(temp_path, conversion=int)
+
+                        if isinstance(temp_raw, int):
+                            temps[f"GPU ({name.upper()})"] = f"{temp_raw / 1000:.1f}°C"
+                            gpu_found = True
+                except Exception:
+                    continue
+
+        # 4. Si aucun GPU n'a été trouvé après tous les tests
+        if not gpu_found:
+            # Optionnel : On peut choisir de ne rien afficher ou d'afficher N/D
+            # Ici, pour répondre à ta demande, on force une ligne si tu le souhaites
+            # Mais souvent, ne rien afficher est plus propre.
+            # Si tu veux vraiment N/D, décommente la ligne suivante :
+            # temps["GPU"] = "N/D"
+            pass
+
         return temps if temps else {"Erreur": "Aucun capteur thermique trouvé."}
 
     def get_power_supply(self):
@@ -110,9 +152,9 @@ class SystemCollector:
             name = path.split('/')[-1]
             status = _safe_read(f"{path}/status", default_value="Inconnu")
             capacity = _safe_read(f"{path}/capacity", default_value="N/D")
-            
+
             capacity_str = f"{capacity}%" if capacity.isdigit() else capacity
-            
+
             power_data.append({
                 "source": name,
                 "status": status,
@@ -124,64 +166,70 @@ class SystemCollector:
         return power_data[0] if power_data else {"source": "N/D", "status": "N/D", "capacity": "N/D"}
 
     def get_process_list(self):
-        processes = []
-        pids = [p.split('/')[-1] for p in glob.glob("/proc/[0-9]*")]
-        
-        for pid in pids:
-            try:
-                status_path = f"/proc/{pid}/status"
-                content = _safe_read(status_path, default_value="")
-                
-                name_match = re.search(r'Name:\s*([^\n]+)', content)
-                uid_match = re.search(r'Uid:\s*(\d+)', content)
-                mem_match = re.search(r'VmRSS:\s*(\d+)', content)
-                
-                nom = name_match.group(1).strip() if name_match else f"PID {pid}"
-                uid = uid_match.group(1) if uid_match else "N/A"
-                mem_ko = int(mem_match.group(1)) if mem_match else 0
-                
-                user_name = _safe_subprocess(["id", "-un", uid], default_value=f"UID {uid}")
+        cmd = ["ps", "-e", "-o", "pid,user,%cpu,%mem,comm", "--sort=-%mem"]
+        output = _safe_subprocess(cmd)
 
-                processes.append({
-                    "pid": pid,
-                    "user": user_name,
-                    "mem_ko": mem_ko,
-                    "name": nom,
-                    "cpu_percent": "N/D"
-                })
-            except Exception:
-                continue 
-                
-        return sorted(processes, key=lambda p: p['mem_ko'], reverse=True)[:30]
+        if output == "N/D":
+            return []
+
+        processes = []
+        lines = output.splitlines()
+
+        if len(lines) > 1:
+            for line in lines[1:31]:
+                parts = line.split(None, 4)
+                if len(parts) == 5:
+                    pid_str, user, cpu, mem, name = parts
+                    try:
+                        processes.append({
+                            "pid": pid_str,
+                            "user": user,
+                            "cpu_percent": f"{cpu}%",
+                            "mem_percent": f"{mem}%",
+                            "name": name.strip()
+                        })
+                    except ValueError:
+                        continue
+
+        return processes
 
     def get_disk_usage(self):
-        output = _safe_subprocess(["df", "-T", "--exclude-type=tmpfs", "--exclude-type=devtmpfs", "--output=source,fstype,size,used,avail,pcent,target"])
-        
+        output = _safe_subprocess(["df", "-hT"])
+
         if "N/D" in output:
             return [{"Error": "Commande 'df' non disponible ou erreur d'exécution."}]
 
         lines = output.splitlines()
         data = []
+
         if len(lines) > 1:
             for line in lines[1:]:
+                # Exclusion de efivarfs et autres systèmes virtuels
+                if any(exclude in line for exclude in ['tmpfs', 'devtmpfs', 'squashfs', 'overlay', 'loop', 'efivarfs']):
+                    continue
+
                 parts = line.split()
                 if len(parts) >= 7:
                     data.append({
-                        "target": parts[6], 
-                        "fstype": parts[1], 
+                        "target": parts[6],
+                        "fstype": parts[1],
                         "size": parts[2],
                         "used": parts[3],
                         "available": parts[4],
                         "percent": parts[5],
                     })
+
+        if not data:
+            return [{"Error": "Aucun disque physique détecté (vérifiez les filtres)."}]
+
         return data
 
     def get_network_info(self):
         output = _safe_subprocess(["ip", "a"], default_value="N/D")
-        
+
         if "N/D" in output:
             return {"status": "Erreur: Commande 'ip' non disponible.", "interfaces": []}
-            
+
         interfaces = {}
         current_iface = None
 
@@ -199,14 +247,36 @@ class SystemCollector:
                 if match_ip:
                     interfaces[current_iface]["ip"] = match_ip.group(1)
 
-        active_interfaces = [f"{name} ({data['ip']})" for name, data in interfaces.items() if data['status'] == 'UP' and data['ip'] != 'N/D']
-        
+        active_interfaces = []
+        for name, data in interfaces.items():
+            if data['status'] == 'UP' and data['ip'] != 'N/D':
+                ssid_info = ""
+                # Si l'interface commence par 'w', on tente de récupérer le SSID
+                if name.startswith('w'):
+                    # METHODE 1 : iwgetid
+                    ssid = _safe_subprocess(["iwgetid", "-r", name])
+
+                    # METHODE 2 : iw (si la 1 échoue)
+                    if not ssid or ssid == "N/D" or ssid == "":
+                        try:
+                            iw_output = _safe_subprocess(["iw", "dev", name, "link"])
+                            match_ssid = re.search(r'SSID:\s+(.*)', iw_output)
+                            if match_ssid:
+                                ssid = match_ssid.group(1).strip()
+                        except Exception:
+                            pass
+
+                    if ssid and ssid != "N/D" and ssid != "":
+                        ssid_info = f" [SSID: {ssid}]"
+
+                active_interfaces.append(f"{name}{ssid_info} ({data['ip']})")
+
         return {"status": "Réseau actif" if active_interfaces else "Réseau non actif", "interfaces": active_interfaces}
 
     def get_web_services(self, ports=[80, 443], host='127.0.0.1'):
         results = {}
         import socket
-        
+
         for port in ports:
             status = "Fermé/N/D"
             try:
@@ -220,9 +290,12 @@ class SystemCollector:
             results[port] = status
         return results
 
-def generate_html_report(destination_file):
+
+# --- Génération du Rapport HTML ---
+
+def generate_html_report(destination_file, sections=['all']):
     collector = SystemCollector()
-    script_dir = Path(sys.argv[0]).parent 
+    script_dir = Path(sys.argv[0]).parent.resolve()
     html_template_path = script_dir / "index.html"
 
     try:
@@ -231,7 +304,7 @@ def generate_html_report(destination_file):
     except FileNotFoundError:
         print(f"Erreur: Le modèle HTML est introuvable à {html_template_path}.")
         sys.exit(1)
-        
+
     data = {
         "general": collector.get_general_info(),
         "memory": collector.get_memory_stats(),
@@ -242,14 +315,28 @@ def generate_html_report(destination_file):
         "network": collector.get_network_info(),
         "web_services": collector.get_web_services(),
     }
-    
-    # Remplacements généraux
-    html_content = html_template.replace('{{DATE_TEMPS}}', data['general']['time'])
+
+    html_content = html_template
+
+    section_markers = {
+        'general': 'aria-labelledby="titre_general"',
+        'memory': 'aria-labelledby="titre_memoire"',
+        'hardware': 'aria-labelledby="titre_materiel"',
+        'process': 'aria-labelledby="titre_processus"',
+        'disk': 'aria-labelledby="titre_disques"',
+        'network': 'aria-labelledby="titre_reseau"'
+    }
+
+    for section_name, marker in section_markers.items():
+        if section_name not in sections:
+            html_content = html_content.replace(marker, f'{marker} style="display:none !important;"')
+
+    # Remplacements
+    html_content = html_content.replace('{{DATE_TEMPS}}', data['general']['time'])
     html_content = html_content.replace('{{HOSTNAME}}', data['general']['hostname'])
     html_content = html_content.replace('{{KERNEL_VERSION}}', data['general']['kernel'])
     html_content = html_content.replace('{{UPTIME}}', data['general']['uptime'])
-    
-    # Remplacements Mémoire
+
     mem = data['memory']
     html_content = html_content.replace('{{MEMOIRE_USE_PCT}}', str(mem['used_percent']))
     html_content = html_content.replace('{{MEMOIRE_TOTALE_GO}}', f"{mem['total_gb']} GO")
@@ -257,10 +344,8 @@ def generate_html_report(destination_file):
     html_content = html_content.replace('{{MEMOIRE_CACHE_GO}}', f"{mem['cache_gb']} GO")
     html_content = html_content.replace('{{SWAP_USE_PCT}}', str(mem['swap_used_percent']))
     html_content = html_content.replace('{{SWAP_TOTALE_GO}}', f"{mem['swap_total_gb']} GO")
-    # LIGNE CRITIQUE : Cette substitution assure le remplissage de la barre
-    html_content = html_content.replace('{{SWAP_USE_PCT_VAL}}', str(mem['swap_used_percent'])) 
+    html_content = html_content.replace('{{SWAP_USE_PCT_VAL}}', str(mem['swap_used_percent']))
 
-    # Températures
     temps_html = ""
     if "Erreur" in data['temps']:
         temps_html = f'<li class="message-erreur">{data["temps"]["Erreur"]}</li>'
@@ -269,25 +354,21 @@ def generate_html_report(destination_file):
             temps_html += f'<li>{name}: <span class="valeur_temp">{temp}</span></li>'
     html_content = html_content.replace('{{LISTE_TEMPERATURES}}', temps_html)
 
-    # Alimentation
     power = data['power']
     power_status = f"{power['status']} ({power['source']})"
     power_capacity = power['capacity']
     html_content = html_content.replace('{{STATUT_ALIMENTATION}}', power_status)
     html_content = html_content.replace('{{NIVEAU_BATTERIE}}', power_capacity)
-    
-    # Tableau des Processus
+
     process_rows = ""
-    total_ram_ko = data['memory']['total_gb'] * 1048576 
     if data['processes']:
         for p in data['processes']:
-            mem_percent = round((p['mem_ko'] / total_ram_ko) * 100, 1) if total_ram_ko > 0 else 0
             process_rows += f"""
             <tr>
                 <td>{p['pid']}</td>
                 <td>{p['user']}</td>
                 <td>{p['cpu_percent']}</td>
-                <td>{mem_percent}%</td>
+                <td>{p['mem_percent']}</td>
                 <td>{p['name']}</td>
             </tr>
             """
@@ -296,13 +377,17 @@ def generate_html_report(destination_file):
     html_content = html_content.replace('{{CORPS_TABLEAU_PROCESSUS}}', process_rows)
 
     disk_rows = ""
-    if 'Error' in data['disks'][0] if data['disks'] else False:
+    if data['disks'] and 'Error' in data['disks'][0]:
         disk_rows = f'<tr><td colspan="5" class="message-erreur" style="text-align:center;">{data["disks"][0]["Error"]}</td></tr>'
     elif data['disks']:
         for d in data['disks']:
-            percent_val = int(d['percent'].replace('%', '').replace('N/A', '0'))
+            try:
+                percent_val = int(d['percent'].replace('%', '').replace('N/A', '0'))
+            except ValueError:
+                percent_val = 0
+
             percent_class = "etat-critique" if percent_val > 90 else "etat-avertissement" if percent_val > 70 else "etat-ok"
-            
+
             disk_rows += f"""
             <tr>
                 <td>{d['target']} ({d['fstype']})</td>
@@ -313,31 +398,37 @@ def generate_html_report(destination_file):
             </tr>
             """
     else:
-        disk_rows = '<tr><td colspan="5" class="message-erreur" style="text-align:center;">Aucun système de fichiers monté ou lisible (df).</td></tr>'
+        disk_rows = '<tr><td colspan="5" class="message-erreur" style="text-align:center;">Aucun disque détecté.</td></tr>'
     html_content = html_content.replace('{{CORPS_TABLEAU_DISQUES}}', disk_rows)
 
     network_list = "".join([f'<li>{i}</li>' for i in data['network']['interfaces']])
     if not network_list:
         network_list = f'<li class="message-erreur">{data["network"]["status"]}</li>'
+
     html_content = html_content.replace('{{STATUT_RESEAU}}', data['network']['status'])
     html_content = html_content.replace('{{LISTE_INTERFACES}}', network_list)
     html_content = html_content.replace('{{STATUT_PORT_80}}', data['web_services'][80])
     html_content = html_content.replace('{{STATUT_PORT_443}}', data['web_services'][443])
+
     try:
         with open(destination_file, "w", encoding="utf-8") as f:
             f.write(html_content)
-        print(f"Rapport HTML généré: {destination_file}")
-    except IOError as e:
+        print(f"Rapport HTML généré avec succès : {destination_file}")
+        if 'all' not in sections:
+            print(f"Sections incluses : {', '.join(sections)}")
+    except IOError:
         print(f"Erreur d'écriture: Impossible d'écrire le fichier de rapport à {destination_file}.")
         sys.exit(1)
 
+
+# --- Interface Graphique ---
+
 def interface_graphique():
-    
     collector = SystemCollector()
     fenetre = tk.Tk()
     fenetre.title("Surveillance Système (Temps Réel)")
     fenetre.geometry("850x650")
-    
+
     v_heure = tk.StringVar(value="--")
     v_hote = tk.StringVar(value="--")
     v_kernel = tk.StringVar(value="--")
@@ -349,28 +440,34 @@ def interface_graphique():
 
     cadre = ttk.Frame(fenetre, padding=12)
     cadre.pack(fill=tk.BOTH, expand=True)
-    
+
     labels_info = [
         ("Heure :", v_heure), ("Nom d'hôte :", v_hote), ("Noyau :", v_kernel),
-        ("Uptime :", v_uptime), ("RAM (Usage/Cache/Swap) :", v_ram), 
+        ("Uptime :", v_uptime), ("RAM (Usage/Cache/Swap) :", v_ram),
         ("Températures :", v_temp), ("Alimentation :", v_batterie), ("Réseau (Status/IP) :", v_reseau)
     ]
-    
+
     for i, (text, var) in enumerate(labels_info):
         ttk.Label(cadre, text=text, font=("Segoe UI", 11, "bold")).grid(row=i, column=0, sticky="w", pady=2)
         ttk.Label(cadre, textvariable=var).grid(row=i, column=1, sticky="w", pady=2)
 
-    ttk.Label(cadre, text="Top 30 Processus (par Mémoire) :", font=("Segoe UI", 11, "bold")).grid(row=len(labels_info), column=0, sticky="nw", pady=10)
+    ttk.Label(cadre, text="Top 30 Processus (par Mémoire) :", font=("Segoe UI", 11, "bold")).grid(row=len(labels_info),
+                                                                                                  column=0, sticky="nw",
+                                                                                                  pady=10)
     zone_processus = tk.Text(cadre, width=80, height=16)
     zone_processus.grid(row=len(labels_info), column=1, sticky="w", pady=10)
 
     def mise_a_jour():
         try:
             info = collector.get_general_info()
-            v_heure.set(info["time"]); v_hote.set(info["hostname"]); v_kernel.set(info["kernel"]); v_uptime.set(info["uptime"])
+            v_heure.set(info["time"]);
+            v_hote.set(info["hostname"]);
+            v_kernel.set(info["kernel"]);
+            v_uptime.set(info["uptime"])
 
             mem = collector.get_memory_stats()
-            v_ram.set(f"Utilisé: {mem['used_gb']} Go ({mem['used_percent']}%) | Cache: {mem['cache_gb']} Go | Swap: {mem['swap_used_percent']}%")
+            v_ram.set(
+                f"Utilisé: {mem['used_gb']} Go ({mem['used_percent']}%) | Cache: {mem['cache_gb']} Go | Swap: {mem['swap_used_percent']}%")
 
             temps = collector.get_temperatures()
             temp_str = temps['Erreur'] if "Erreur" in temps else ", ".join([f"{k}: {v}" for k, v in temps.items()])
@@ -380,40 +477,50 @@ def interface_graphique():
             v_batterie.set(f"{power['capacity']} — {power['status']} ({power['source']})")
 
             net = collector.get_network_info()
-            v_reseau.set(f"{net['status']} | Interfaces: {', '.join(net['interfaces']) if net['interfaces'] else 'N/D'}")
+            v_reseau.set(
+                f"{net['status']} | Interfaces: {', '.join(net['interfaces']) if net['interfaces'] else 'N/D'}")
 
             processes = collector.get_process_list()
             zone_processus.delete("1.0", tk.END)
-            total_ram_ko = mem['total_gb'] * 1048576
 
-            zone_processus.insert(tk.END, f"{'PID':<6} | {'USER':<10} | {'CPU':<5} | {'MEM':<5} | {'NOM'}\n")
+            zone_processus.insert(tk.END, f"{'PID':<6} | {'USER':<10} | {'CPU':<6} | {'MEM':<6} | {'NOM'}\n")
             zone_processus.insert(tk.END, "-" * 75 + "\n")
 
             for p in processes:
-                 mem_percent = round((p['mem_ko'] / total_ram_ko) * 100, 1) if total_ram_ko > 0 else 0
-                 zone_processus.insert(tk.END, f"{p['pid']:<6} | {p['user'][:10]:<10} | {p['cpu_percent']:<5} | {str(mem_percent)+'%':<5} | {p['name']}\n")
+                zone_processus.insert(tk.END,
+                                      f"{p['pid']:<6} | {p['user'][:10]:<10} | {p['cpu_percent']:<6} | {p['mem_percent']:<6} | {p['name']}\n")
 
         except Exception as e:
-            messagebox.showerror("Erreur Critique", f"Erreur de mise à jour: {e}")
-            fenetre.quit()
+            print(f"Erreur maj GUI: {e}")
 
-        fenetre.after(1500, mise_a_jour) 
-    
+        fenetre.after(1500, mise_a_jour)
+
     mise_a_jour()
     fenetre.mainloop()
+
+
+# --- Fonction Principale ---
 
 def main():
     parser = argparse.ArgumentParser(description="Générateur de rapport d'état système Linux.")
     parser.add_argument("--gui", action="store_true", help="Lance le mode d'interface graphique en temps réel.")
-    parser.add_argument("--output", default="rapport_etat_systeme.html", help="Nom du fichier de rapport HTML de sortie.")
+    parser.add_argument("--output", default="rapport_etat_systeme.html",
+                        help="Nom du fichier de rapport HTML de sortie.")
+    parser.add_argument("--sections", nargs='+',
+                        choices=['general', 'memory', 'hardware', 'process', 'disk', 'network'],
+                        default=['all'],
+                        help="Sections à inclure : general, memory, hardware, process, disk, network. (Défaut: tout)")
+
     args = parser.parse_args()
+
     if args.gui:
         interface_graphique()
     else:
-        generate_html_report(args.output)
+        sections_to_include = args.sections
+        if 'all' in sections_to_include:
+            sections_to_include = ['general', 'memory', 'hardware', 'process', 'disk', 'network']
 
-
-
+        generate_html_report(args.output, sections_to_include)
 
 
 if __name__ == "__main__":
